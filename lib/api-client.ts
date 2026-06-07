@@ -482,7 +482,7 @@ export const apiService = {
     return response.data
   },
 
-  getLecturerCourseStats: async () => {
+  getLecturerAnalyticsCourses: async () => {
     const response = await getApiClient().get('/api/v1/analytics/lecturer/courses')
     return response.data
   },
