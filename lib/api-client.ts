@@ -453,10 +453,6 @@ export const apiService = {
     return response.data
   },
 
-  getTodaySchedule: async () => {
-    const response = await getApiClient().get('/api/v1/courses/me/schedule/today')
-    return response.data
-  },
 
   deleteUser: async (id: string) => {
     const response = await getApiClient().delete(`/api/v1/users/${id}`)
