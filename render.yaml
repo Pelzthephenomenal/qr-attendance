@@ -1,0 +1,26 @@
+databases:
+  - name: qr-attendance-db
+    databaseName: qratttendance
+    user: qruser
+    plan: free
+    region: ohio
+
+services:
+  - type: web
+    name: qr-attendance-api
+    env: docker
+    plan: free
+    region: ohio
+    rootDir: backend
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: qr-attendance-db
+          property: connectionString
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: "https://your-vercel-frontend-url.vercel.app,*"
