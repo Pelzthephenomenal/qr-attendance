@@ -42,6 +42,15 @@ def create_app() -> FastAPI:
     def health_check() -> dict[str, str]:
         return {"status": "ok"}
 
+    @app.get("/api/v1/seed")
+    def seed_database() -> dict[str, str]:
+        from app.db.seed import seed
+        try:
+            seed()
+            return {"status": "Database successfully seeded! You can now log in."}
+        except Exception as e:
+            return {"error": f"Seed failed or already seeded: {str(e)}"}
+
     app.include_router(api_router, prefix="/api/v1")
     return app
 
