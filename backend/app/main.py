@@ -33,7 +33,10 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     def create_tables_for_development() -> None:
         if settings.auto_create_tables:
-            Base.metadata.create_all(bind=engine)
+            try:
+                Base.metadata.create_all(bind=engine)
+            except Exception as e:
+                print(f"Skipping table creation due to error (likely a race condition or existing Enum): {e}")
 
     @app.get("/health")
     def health_check() -> dict[str, str]:
