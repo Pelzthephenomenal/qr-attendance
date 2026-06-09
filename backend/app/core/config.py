@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     login_rate_limit_window_seconds: int = 300  # 5 minutes
     auto_create_tables: bool = True
     sentry_dsn: str | None = None
-    cors_origins: list[AnyHttpUrl | str] = [
+    cors_origins: str | list[AnyHttpUrl | str] = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "*",
