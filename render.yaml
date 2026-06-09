@@ -12,7 +12,7 @@ services:
     plan: free
     region: ohio
     rootDir: backend
-    healthCheckPath: /api/v1/health
+    healthCheckPath: /health
     envVars:
       - key: ENVIRONMENT
         value: production
