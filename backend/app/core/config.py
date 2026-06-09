@@ -20,6 +20,16 @@ class Settings(BaseSettings):
         "*",
     ]
 
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def assemble_database_url(cls, v: str | None) -> str:
+        if isinstance(v, str):
+            if v.startswith("postgres://"):
+                return v.replace("postgres://", "postgresql+psycopg://", 1)
+            if v.startswith("postgresql://"):
+                return v.replace("postgresql://", "postgresql+psycopg://", 1)
+        return v or ""
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: str | list[str]) -> list[str]:
