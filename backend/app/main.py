@@ -51,6 +51,17 @@ def create_app() -> FastAPI:
         except Exception as e:
             return {"error": f"Seed failed or already seeded: {str(e)}"}
 
+    @app.get("/api/v1/migrate")
+    def run_migrations() -> dict[str, str]:
+        from alembic.config import Config
+        from alembic import command
+        try:
+            alembic_cfg = Config("alembic.ini")
+            command.upgrade(alembic_cfg, "head")
+            return {"status": "Database successfully migrated! Views created."}
+        except Exception as e:
+            return {"error": f"Migration failed: {str(e)}"}
+
     app.include_router(api_router, prefix="/api/v1")
     return app
 
