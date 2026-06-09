@@ -53,11 +53,66 @@ def create_app() -> FastAPI:
 
     @app.get("/api/v1/migrate")
     def run_migrations() -> dict[str, str]:
-        from alembic.config import Config
-        from alembic import command
+        from app.db.session import engine
+        from sqlalchemy import text
         try:
-            alembic_cfg = Config("alembic.ini")
-            command.upgrade(alembic_cfg, "head")
+            with engine.begin() as conn:
+                conn.execute(text("""
+                    CREATE OR REPLACE VIEW attendance_session_summary AS
+                    SELECT
+                        s.id AS session_id,
+                        s.course_id,
+                        s.session_date,
+                        s.status AS session_status,
+                        COUNT(e.student_id) FILTER (WHERE e.is_active = TRUE) AS enrolled_count,
+                        COUNT(ar.id) FILTER (WHERE ar.status IN ('present', 'late', 'manual_present')) AS attended_count,
+                        COUNT(ar.id) FILTER (WHERE ar.status = 'late') AS late_count,
+                        COUNT(ar.id) FILTER (WHERE ar.status = 'absent') AS absent_count,
+                        CASE
+                            WHEN COUNT(e.student_id) FILTER (WHERE e.is_active = TRUE) = 0 THEN 0
+                            ELSE ROUND(
+                                (
+                                    COUNT(ar.id) FILTER (WHERE ar.status IN ('present', 'late', 'manual_present'))::numeric
+                                    / COUNT(e.student_id) FILTER (WHERE e.is_active = TRUE)::numeric
+                                ) * 100,
+                                2
+                            )
+                        END AS attendance_percent
+                    FROM attendance_sessions s
+                    JOIN enrollments e ON e.course_id = s.course_id
+                    LEFT JOIN attendance_records ar
+                        ON ar.session_id = s.id
+                        AND ar.student_id = e.student_id
+                    GROUP BY s.id, s.course_id, s.session_date, s.status;
+                """))
+
+                conn.execute(text("""
+                    CREATE OR REPLACE VIEW student_course_attendance_summary AS
+                    SELECT
+                        e.course_id,
+                        e.student_id,
+                        COUNT(s.id) FILTER (WHERE s.status = 'closed') AS total_closed_sessions,
+                        COUNT(ar.id) FILTER (WHERE ar.status IN ('present', 'late', 'manual_present')) AS attended_sessions,
+                        COUNT(ar.id) FILTER (WHERE ar.status = 'late') AS late_sessions,
+                        COUNT(ar.id) FILTER (WHERE ar.status = 'absent') AS absent_sessions,
+                        CASE
+                            WHEN COUNT(s.id) FILTER (WHERE s.status = 'closed') = 0 THEN 0
+                            ELSE ROUND(
+                                (
+                                    COUNT(ar.id) FILTER (WHERE ar.status IN ('present', 'late', 'manual_present'))::numeric
+                                    / COUNT(s.id) FILTER (WHERE s.status = 'closed')::numeric
+                                ) * 100,
+                                2
+                            )
+                        END AS attendance_percent
+                    FROM enrollments e
+                    JOIN attendance_sessions s ON s.course_id = e.course_id
+                    LEFT JOIN attendance_records ar
+                        ON ar.session_id = s.id
+                        AND ar.student_id = e.student_id
+                    WHERE e.is_active = TRUE
+                    GROUP BY e.course_id, e.student_id;
+                """))
             return {"status": "Database successfully migrated! Views created."}
         except Exception as e:
             return {"error": f"Migration failed: {str(e)}"}
